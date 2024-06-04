@@ -30,7 +30,9 @@ class ImageController extends Controller
 
         // Generate a unique name for the image
         $imageName = time().'.'.$request->image->getClientOriginalExtension();
-
+        
+        // Store the original image in the 'images' directory
+        $originalImagePath = $request->image->storeAs('images', $imageName, 'public');
         $originalImageFullPath = $baseImagePath.$imageName;
 
         if ($request->has(['height', 'width']) && $request->height && $request->width) {
