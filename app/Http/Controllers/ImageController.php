@@ -13,6 +13,7 @@ class ImageController extends Controller
     public function store(Request $request)
     {
         $optimizerChain = OptimizerChainFactory::create();
+
         $baseImagePath = storage_path('app/public/images/');
         $resizedImagePath = storage_path('app/public/images/resized/');
 
@@ -20,9 +21,10 @@ class ImageController extends Controller
 
         // Validate the request
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,gif',
+            'image' => 'required|image|mimes:jpeg,jpg,png,webp',
             'height' => 'nullable|integer',
             'width' => 'nullable|integer',
+            'outputFileType' => 'required|in:original,jpg,png,webp,base64'
         ]);
 
         // Generate a unique name for the image
@@ -32,24 +34,39 @@ class ImageController extends Controller
         $originalImagePath = $request->image->storeAs('images', $imageName, 'public');
         $originalImageFullPath = $baseImagePath.$imageName;
 
-        // Resize the image if height and width are provided
         if ($request->has(['height', 'width']) && $request->height && $request->width) {
+            $outputFileType = $request->outputFileType;
+
+            // Check if outputFileType is 'original', use original extension
+            if ($outputFileType == 'original') {
+                $outputFileType = $request->image->getClientOriginalExtension();
+            }
+
+            $resizedImageName = 'resized_' . time() . '.' . $outputFileType;
+            
+            // Resize the image if height and width are provided
             $img = $manager->read($originalImageFullPath)->resize($request->width, $request->height);
-            $resizedImageName = 'resized_' . $imageName;
             $resizedImageFullPath = $resizedImagePath . $resizedImageName;
 
             if (!file_exists($resizedImagePath)) {
                 mkdir($resizedImagePath, 0755, true);
             }
 
-            // Save resized image with lower quality for JPEG
-            $img->save($resizedImageFullPath); 
+            $img->save($resizedImageFullPath);
 
             // Optimize the resized image
             $optimizerChain->optimize($resizedImageFullPath);
 
-            // Save the resized image path in the session
-            session(['resizeImage' => 'resized/' . $resizedImageName]);
+            // Convert to Base64 if selected
+            if ($outputFileType === 'base64') {
+                $base64Image = base64_encode(file_get_contents($resizedImageFullPath));
+                session()->forget(['resizeImage', 'image']);
+                session(['base64Image' => $base64Image]);
+            } else {
+                session()->forget(['base64Image']);
+                session(['resizeImage' => 'resized/' . $resizedImageName]);
+
+            }
         }
 
         session(['image' => 'images/' . $imageName]);
@@ -76,4 +93,6 @@ class ImageController extends Controller
 
         return response()->download($imagePath);
     }
+
+    
 }
