@@ -15,13 +15,15 @@ return [
     'optimizers' => [
 
         Jpegoptim::class => [
-            '-m85', // set maximum quality to 85%
+            '--max=85', // Adjust this value as needed
             '--strip-all',  // this strips out all text information such as comments and EXIF data
             '--all-progressive',  // this will make sure the resulting image is a progressive one
         ],
 
         Pngquant::class => [
             '--force', // required parameter for this package
+            '--quality=60-80', // Adjust this value as needed
+
         ],
 
         Optipng::class => [

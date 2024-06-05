@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Image;
-use ImageOptimizer;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
 
 class ImageController extends Controller
@@ -15,7 +13,6 @@ class ImageController extends Controller
     public function store(Request $request)
     {
         $optimizerChain = OptimizerChainFactory::create();
-
         $baseImagePath = storage_path('app/public/images/');
         $resizedImagePath = storage_path('app/public/images/resized/');
 
@@ -35,31 +32,31 @@ class ImageController extends Controller
         $originalImagePath = $request->image->storeAs('images', $imageName, 'public');
         $originalImageFullPath = $baseImagePath.$imageName;
 
+        // Resize the image if height and width are provided
         if ($request->has(['height', 'width']) && $request->height && $request->width) {
-            // Resize the image if height and width are provided
             $img = $manager->read($originalImageFullPath)->resize($request->width, $request->height);
             $resizedImageName = 'resized_' . $imageName;
             $resizedImageFullPath = $resizedImagePath . $resizedImageName;
-            
+
             if (!file_exists($resizedImagePath)) {
                 mkdir($resizedImagePath, 0755, true);
             }
 
-            $img->save($resizedImageFullPath);
+            // Save resized image with lower quality for JPEG
+            $img->save($resizedImageFullPath); 
 
             // Optimize the resized image
             $optimizerChain->optimize($resizedImageFullPath);
 
             // Save the resized image path in the session
             session(['resizeImage' => 'resized/' . $resizedImageName]);
-        } 
+        }
 
         session(['image' => 'images/' . $imageName]);
 
         // Return a success response
         return back()->with('success', 'Image uploaded and manipulated successfully');
     }
-
 
     public function download()
     {
