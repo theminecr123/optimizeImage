@@ -33,15 +33,13 @@ class ImageController extends Controller
         'globalFileType' => 'required|in:jpg,png,webp,base64',
         'globalCategory' => 'required|string'
     ],[
-        'name.required' => 'Tên hình bắt buộc phải nhập',
-        'heights.required' => 'Chiều cao bắt buộc phải nhập',
-        'widths.required' => 'Chiều rộng phẩm bắt buộc phải nhập',
-        'tags.required' => 'Tags sản phẩm bắt buộc phải nhập'
-
+        'names.*.required' => 'Tên hình bắt buộc phải nhập',
+        'heights.*.required' => 'Chiều cao bắt buộc phải nhập',
+        'widths.*.required' => 'Chiều rộng phẩm bắt buộc phải nhập',
+        'tags.*.required' => 'Tags sản phẩm bắt buộc phải nhập'
     ]);
 
     $images = $request->file('images');
-    $imageData = [];
     $globalCategory = $request->input('globalCategory');
     $globalFileType = $request->input('globalFileType');
 
@@ -50,20 +48,16 @@ class ImageController extends Controller
         $imageName = time() . '_' . $index . '.' . $extension;
         $resizedImageFullPath = storage_path('app/public/images/resized/' . $imageName);
 
-        $width = $request->input("widths.$index");
-        $height = $request->input("heights.$index");
+        $width = $request->input("widths[$index]");
+        
+        $height = $request->input("heights[$index]");
 
         if (!file_exists(storage_path('app/public/images/resized'))) {
             mkdir(storage_path('app/public/images/resized'), 0755, true);
         }
 
         // Compress and save the resized image
-        if ($width && $height) {
-            $img = $manager->read($image->getRealPath())->resize($width, $height);
-        } else {
-            $img = $manager->read($image->getRealPath());
-        }
-
+        $img = $manager->read($image->getRealPath())->resize($width, $height);
         $img->save($resizedImageFullPath);
         $optimizerChain->optimize($resizedImageFullPath);
 
@@ -97,6 +91,7 @@ class ImageController extends Controller
 
     return redirect()->route('image.index')->with('success', 'Images Uploaded Successfully');
 }
+
 
 
 
