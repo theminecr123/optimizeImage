@@ -17,6 +17,14 @@
         "APP_ENV": "production",
         "APP_DEBUG": "true",
         "APP_URL": "https://akos-portfolio.vercel.app",
+        "APP_KEY": "base64:FYzMMlrMOkhYgBp2iILuTrbYcTWU4Njk2vXAUvcg3LU=",
+
+        "DB_CONNECTION":"mysql",
+        "DB_HOST":"127.0.0.1",
+        "DB_PORT":"3306",
+        "DB_DATABASE":"imageoptimize",
+        "DB_USERNAME":"root",
+        "DB_PASSWORD":"",
 
         "APP_CONFIG_CACHE": "/tmp/config.php",
         "APP_EVENTS_CACHE": "/tmp/events.php",
