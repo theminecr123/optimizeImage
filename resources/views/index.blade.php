@@ -414,6 +414,11 @@
                 return;
             }
 
+            // Disable upload button
+            const uploadButton = document.getElementById('uploadButton');
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Uploading...';
+
             // Loop through each file and upload individually to manage progress bars
             for (let i = 0; i < files.length; i++) {
                 (function(index) {
@@ -457,6 +462,9 @@
                                 }
                             } else {
                                 console.error(`Upload failed for file ${index}`, xhr.status, xhr.statusText);
+                                // Re-enable upload button if there's an error
+                                uploadButton.disabled = false;
+                                uploadButton.textContent = 'Optimize Images';
                             }
                         }
                     };
