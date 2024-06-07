@@ -79,6 +79,16 @@
             font-size: 12px;
             margin-top: 5px;
         }
+
+        .drop-zone {
+            border: 2px dashed #007bff;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .drop-zone.dragover {
+            background-color: #f1f1f1;
+        }
     </style>
 </head>
 <body>
@@ -164,7 +174,10 @@
                         @csrf
                         <div class="form-group">
                             <label for="images">Select Images:</label>
-                            <input type="file" name="images[]" id="images" accept="image/*" class="form-control-file" multiple onchange="previewImages(event)">
+                            <div id="drop-zone" class="drop-zone">
+                                Drag & Drop your images here or click to select
+                                <input type="file" name="images[]" id="images" accept="image/*" class="form-control-file" multiple onchange="previewImages(event)" style="display:none;">
+                            </div>
                             <div class="error-message" id="error-images"></div>
                         </div>
                         <div id="image-options-container" class="row"></div>
@@ -211,6 +224,31 @@
 
     <script>
         let filesArray = [];
+
+        document.getElementById('drop-zone').addEventListener('click', function() {
+            document.getElementById('images').click();
+        });
+
+        document.getElementById('drop-zone').addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('dragover');
+        });
+
+        document.getElementById('drop-zone').addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('dragover');
+        });
+
+        document.getElementById('drop-zone').addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            document.getElementById('images').files = files;
+            previewImages({ target: { files: files } });
+        });
 
         function previewImages(event) {
             const files = event.target.files;
@@ -462,7 +500,6 @@
                                 }
                             } else {
                                 console.error(`Upload failed for file ${index}`, xhr.status, xhr.statusText);
-                                // Re-enable upload button if there's an error
                                 uploadButton.disabled = false;
                                 uploadButton.textContent = 'Optimize Images';
                             }
