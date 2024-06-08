@@ -18,7 +18,6 @@
             max-width: 100%;
             max-height: 100%;
         }
-
         .image-preview {
             display: flex;
             flex-direction: column;
@@ -30,35 +29,6 @@
             height: 200px; /* Adjusted height to maintain 3:2 aspect ratio */
             object-fit: cover; /* Ensure the image covers the area */
         }
-
-        .progress-overlay {
-            position: absolute;
-            top: 0;
-            border-radius: 5%;
-            width: 200px;
-            height: 200px;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px black;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .progress {
-            width: 80%;
-            height: 20px;
-            margin-top: 10px;
-        }
-
-        .image-preview:hover .progress-overlay {
-            opacity: 1;
-        }
-
         .delete-button {
             position: absolute;
             top: 5px;
@@ -74,13 +44,11 @@
             font-size: 16px;
             line-height: 25px;
         }
-
         .error-message {
             color: red;
             font-size: 12px;
             margin-top: 5px;
         }
-
         .drop-zone {
             border: 2px dashed #007bff;
             padding: 20px;
@@ -89,6 +57,30 @@
         }
         .drop-zone.dragover {
             background-color: #f1f1f1;
+        }
+        .progress-overlay {
+            position: absolute;
+            top: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .progress {
+            width: 80%; /* Adjust as needed */
+            height: 20px; /* Set progress bar height */
+            margin-top: 10px;
+        }
+        .image-preview:hover .progress-overlay {
+            opacity: 1; /* Show overlay on hover */
         }
     </style>
 </head>
@@ -343,8 +335,6 @@
                         formDiv.appendChild(document.createElement('div')).className = 'error-message';
                         formDiv.lastChild.id = `error-tags-${index}`;
 
-                        colDiv.appendChild(formDiv);
-
                         // Add progress overlay for each image
                         const progressOverlay = document.createElement('div');
                         progressOverlay.className = 'progress-overlay';
@@ -357,6 +347,8 @@
                             <div id="progress-text-${index}">0%</div>
                         `;
                         colDiv.appendChild(progressOverlay);
+
+                        colDiv.appendChild(formDiv);
 
                         container.appendChild(colDiv);
 
@@ -409,8 +401,6 @@
                 }
             }
 
-            const files = filesArray;
-
             // Perform client-side validation
             let valid = true;
 
@@ -458,58 +448,39 @@
             uploadButton.disabled = true;
             uploadButton.textContent = 'Uploading...';
 
-            // Loop through each file and upload individually to manage progress bars
-            for (let i = 0; i < files.length; i++) {
-                (function(index) {
-                    const fileData = new FormData();
-                    fileData.append('images[]', files[index]);
+            // Send all files together
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', form.action, true);
+            xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
 
-                    // Append other form data
-                    for (let pair of formData.entries()) {
-                        if (pair[0] !== 'images[]') {
-                            fileData.append(pair[0], pair[1]);
-                        }
-                    }
-
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', form.action, true);
-                    xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
-
-                    xhr.upload.addEventListener('progress', function(e) {
-                        if (e.lengthComputable) {
-                            const percentComplete = (e.loaded / e.total) * 100;
-                            console.log(`File ${index}: ${percentComplete}% uploaded`);
-                            // Select the correct progress bar and text for the current file
-                            const progressBar = document.getElementById(`progress-bar-${index}`);
-                            const progressText = document.getElementById(`progress-text-${index}`);
-                            if (progressBar) {
-                                progressBar.style.width = percentComplete + '%';
-                                progressBar.setAttribute('aria-valuenow', percentComplete);
-                            }
-                            if (progressText) {
-                                progressText.textContent = Math.round(percentComplete) + '%';
-                            }
-                        }
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const total = e.total;
+                    const loaded = e.loaded;
+                    const percentComplete = Math.round((loaded / total) * 100);
+                    filesArray.forEach((file, index) => {
+                        const progressBar = document.getElementById(`progress-bar-${index}`);
+                        const progressText = document.getElementById(`progress-text-${index}`);
+                        progressBar.style.width = `${percentComplete}%`;
+                        progressText.textContent = `${percentComplete}%`;
                     });
+                }
+            });
 
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status === 200) {
-                                console.log(`Upload complete for file ${index}`);
-                                if (index === files.length - 1) {
-                                    location.reload(); // Reload the page after all uploads are complete
-                                }
-                            } else {
-                                console.error(`Upload failed for file ${index}`, xhr.status, xhr.statusText);
-                                uploadButton.disabled = false;
-                                uploadButton.textContent = 'Optimize Images';
-                            }
-                        }
-                    };
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        console.log('Upload complete');
+                        location.reload(); // Reload the page after all uploads are complete
+                    } else {
+                        console.error('Upload failed', xhr.status, xhr.statusText);
+                        uploadButton.disabled = false;
+                        uploadButton.textContent = 'Optimize Images';
+                    }
+                }
+            };
 
-                    xhr.send(fileData);
-                })(i);
-            }
+            xhr.send(formData);
         });
     </script>
 
