@@ -465,6 +465,7 @@
                         progressText.textContent = `${percentComplete}%`;
                     });
                 }
+                
             });
 
             xhr.onreadystatechange = function() {
